@@ -1,5 +1,7 @@
 # StacMR (Scene Text Aware Cross Modal Retrieval)
 
+(На данный момент обновил скрипт для CTC_img_download.py и extract_features.py (считает выходные эмбеддинги). Переделал пока все под cpu, чтобы ни у кого точно не падало)
+
 Dataset and code based on our WACV 2021 Accepted Paper: https://arxiv.org/abs/2012.04329
 
 Official Website is online! https://europe.naverlabs.com/research/computer-vision/stacmr-scene-text-aware-cross-modal-retrieval/
@@ -42,7 +44,7 @@ The annotations are provided within this repo in a json format as CTC_anns.json
 ## Coco-Text Captioned (CTC) Dataset Precomputed Features:
 
 The precomputed CTC features employed (visual and embedded OCR tokens) can be obtained from the following link:
-
+(Я распаковал эти фичи в папку data в корне)
 https://drive.google.com/file/d/1C2ZOM2VB8PwjD-tdqdt00F3DW7m9YznQ/view?usp=sharing
 
 The visual features were extracted by a Faster-RCNN trained on the Visual Genome dataset to predict objects and attributes.
@@ -56,7 +58,7 @@ Similar feature extraction method was employed to train the model and evaluate i
 <p></p>
 
 Download Weights: 
-
+(Обученная модель (От готовых эмбеддингов ocr и картинок, до выходных эмбеддингов, как и написано, сложил в папку runs))
 https://drive.google.com/file/d/1araiEIbbLdiIzPWzGCWRIz4PEQuftgFb/view?usp=sharing
 
 Paste the downloaded weights under the current repository directory in a folder named "runs".
@@ -66,7 +68,7 @@ Paste the downloaded weights under the current repository directory in a folder 
 Extract the image features, OCR tokens with fasttext embedding of the Flickr30K and TextCaps Dataset. Construct a training dataset comprised of Flickr30K, TextCaps and CTC-validation set as described in the paper.
 
 The combination of datasets (Flickr30K, TextCaps and CTC) used to train the model proposed in this paper can be downloaded from:
-
+(Большой датасет, распаковал и сложил в папку data_big. Важно! Для того, чтобы запустился extract_features.py с обученной моделью, надо в распакованной папке data_big заменить название f30k_precomp_full на f30k_precomp)
 https://drive.google.com/file/d/1K66sBXZ9XcfDke7pg8DBmA8nBpnp-z9r/view?usp=sharing
 
 
