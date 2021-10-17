@@ -12,8 +12,6 @@ from model import VSRN, order_sim
 from collections import OrderedDict
 
 
-
-
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 
@@ -107,9 +105,6 @@ def encode_data(model, data_loader, log_step=10, logging=print):
         del images, captions
 
     return img_embs, cap_embs
-
-
-
 
 
 def evalrank(model_path, model_path2, data_path=None, split='dev', fold5=False):
