@@ -84,6 +84,7 @@ def encode_data(model, data_loader, log_step=10, logging=print):
     # numpy array to keep all the embeddings
     img_embs = None
     cap_embs = None
+    # image (Tensor), caption (Encoded by NLTK), caption length, image id, caption (Encoded and with padding up to max_len), caption mask (the same but mask), scene text (Encoded, 15 texts per image with emb len 300)
     for i, (images, captions, lengths, ids, caption_labels, caption_masks, scene_text) in enumerate(data_loader):
         # make sure val logger is used
         model.logger = val_logger
@@ -96,16 +97,12 @@ def encode_data(model, data_loader, log_step=10, logging=print):
             img_embs = np.zeros((len(data_loader.dataset), img_emb.size(1)))
             cap_embs = np.zeros((len(data_loader.dataset), cap_emb.size(1)))
 
-        # preserve the embeddings by copying from gpu and converting to numpy
-        img_embs[ids] = img_emb.data.cpu().numpy().copy()
-        cap_embs[ids] = cap_emb.data.cpu().numpy().copy()
+        img_embs[ids, :] = img_emb.data.cpu().numpy().copy()
+        cap_embs[ids, :] = cap_emb.data.cpu().numpy().copy()
 
-
-        del images, captions
+        # del images, captions
 
     return img_embs, cap_embs
-
-
 
 
 def evalrank(model_path, data_path=None, split='dev', fold5=False):
@@ -298,7 +295,7 @@ def extract_feats(model_path, data_path=None, split='dev', fold5=False):
     used for evaluation.
     """
     # load model and options
-    checkpoint = torch.load(model_path)
+    checkpoint = torch.load(model_path, map_location="cpu")
     opt = checkpoint['opt']
     if data_path is not None:
         opt.data_path = data_path
@@ -326,9 +323,10 @@ def extract_feats(model_path, data_path=None, split='dev', fold5=False):
 
     # SAVE SCAN FEATS
     if split == 'dev':
-        np.save('/media/sounak/4tbdisk/VSRN/img_embs_1K.npy', img_embs)
-        np.save('/media/sounak/4tbdisk/VSRN/cap_embs_1K.npy', cap_embs)
+        np.save('dev/img_embs_1K.npy', img_embs)
+        np.save('dev/cap_embs_1K.npy', cap_embs)
     else:
-        np.save('/media/sounak/4tbdisk/VSRN/img_embs_5K.npy', img_embs)
-        np.save('/media/sounak/4tbdisk/VSRN/cap_embs_5K.npy', cap_embs)
+        np.save('test/img_embs_5K.npy', img_embs)
+        np.save('test/cap_embs_5K.npy', cap_embs)
+
     return
