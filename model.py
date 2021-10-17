@@ -158,8 +158,6 @@ class EncoderImagePrecomp(nn.Module):
 
         self.init_weights()
 
-
-
     def init_weights(self):
         """Xavier initialization for the fully connected layer
         """
@@ -199,7 +197,6 @@ class EncoderImagePrecomp(nn.Module):
         super(EncoderImagePrecomp, self).load_state_dict(new_state)
 
 
-
 class EncoderImagePrecompAttn(nn.Module):
 
     def __init__(self, img_dim, embed_size, data_name, text_number, text_dim, use_abs=False, no_imgnorm=False):
@@ -212,7 +209,6 @@ class EncoderImagePrecompAttn(nn.Module):
         self.fc = nn.Linear(img_dim, embed_size)
 
         self.init_weights()
-
 
         # GSR
         self.img_rnn = nn.GRU(embed_size, embed_size, 1, batch_first=True)
@@ -336,7 +332,6 @@ class EncoderText(nn.Module):
 
         self.init_weights()
 
-
     def init_weights(self):
         self.embed.weight.data.uniform_(-0.1, 0.1)
 
@@ -347,15 +342,13 @@ class EncoderText(nn.Module):
         x = self.embed(x)
         packed = pack_padded_sequence(x, lengths, batch_first=True)
 
-
         # Forward propagate RNN
         out, _ = self.rnn(packed)
-
 
         # Reshape *final* output to (batch_size, hidden_size)
         padded = pad_packed_sequence(out, batch_first=True)
         I = torch.LongTensor(lengths).view(-1, 1, 1)
-        I = Variable(I.expand(x.size(0), 1, self.embed_size)-1).cuda()
+        I = Variable(I.expand(x.size(0), 1, self.embed_size)-1)#.cuda()
         out = torch.gather(padded[0], 1, I).squeeze(1)
 
         # normalization in the joint embedding space
@@ -450,8 +443,6 @@ class VSRN(object):
             self.txt_enc.cuda()
             cudnn.benchmark = True
 
-
-
         #####   captioning elements
 
         self.encoder = EncoderRNN(
@@ -479,7 +470,6 @@ class VSRN(object):
         if torch.cuda.is_available():
             self.caption_model.cuda()
 
-
         # Loss and Optimizer
         self.criterion = ContrastiveLoss(margin=opt.margin,
                                          measure=opt.measure,
@@ -498,8 +488,6 @@ class VSRN(object):
 
         self.Eiters = 0
 
-
-
     def calcualte_caption_loss(self, fc_feats, labels, masks):
 
         # labels = Variable(labels, volatile=False)
@@ -516,9 +504,7 @@ class VSRN(object):
         seq_probs, _ = self.caption_model(fc_feats, labels, 'train')
         loss = self.crit(seq_probs, labels[:, 1:], masks[:, 1:])
 
-
         return loss
-
 
     def state_dict(self):
         state_dict = [self.img_enc.state_dict(), self.txt_enc.state_dict()]
@@ -555,8 +541,9 @@ class VSRN(object):
 
         # Forward
 
-        cap_emb = self.txt_enc(captions, lengths)
-        img_emb, GCN_img_emd = self.img_enc(images, scene_text)
+        cap_emb = self.txt_enc(captions, lengths)  # Эмбеддинги кэпшнов
+        img_emb, GCN_img_emd = self.img_enc(images, scene_text)  # img_emb - Зафьюженные результаты OCR и object detection
+
         return img_emb, cap_emb, GCN_img_emd
 
     def forward_loss(self, img_emb, cap_emb, **kwargs):
@@ -577,20 +564,16 @@ class VSRN(object):
         # compute the embeddings
         img_emb, cap_emb, GCN_img_emd = self.forward_emb(images, captions, lengths, scene_text)
 
-
-        # calcualte captioning loss
+        # calculate captioning loss
         self.optimizer.zero_grad()
 
         caption_loss = self.calcualte_caption_loss(GCN_img_emd, caption_labels, caption_masks)
-
 
         # measure accuracy and record loss
         self.optimizer.zero_grad()
         retrieval_loss = self.forward_loss(img_emb, cap_emb)
 
-
         loss = 2.0 * retrieval_loss + caption_loss
-
 
         self.logger.update('Le_caption', caption_loss.data[0], img_emb.size(0))
         self.logger.update('Le', loss.data[0], img_emb.size(0))
