@@ -159,20 +159,21 @@ class PrecompDataset(data.Dataset):
         # Captions
         self.captions = []
         token_caption = []
-        with open(loc+'%s_caps.txt' % data_split, 'rb') as f:
+        with open(loc+'%s_caps.txt' % data_split, 'r') as f:
             for line in f:
                 self.captions.append(line.strip())
-                tokens = nltk.tokenize.word_tokenize(str(line.strip()).lower().decode('utf-8'))
+                tokens = nltk.tokenize.word_tokenize(str(line.strip()).lower())
                 token_caption.append(tokens)
 
         each_cap_lengths = [len(cap) for cap in token_caption]
         calculate_max_len = max(each_cap_lengths) + 2
-        print(calculate_max_len)
+        print(f"Max Caption len: {calculate_max_len}")
 
         # Image features
         self.images = np.load(loc+'%s_ims.npy' % data_split)
         self.length = len(self.captions)
         # rkiros data has redundancy in images, we divide by 5, 10crop doesn't
+        # self.im_div = 1
         if self.images.shape[0] != self.length:
             self.im_div = 5
         else:
@@ -197,10 +198,9 @@ class PrecompDataset(data.Dataset):
         # Scene text insembedding dim
         self.text_dim = opt.text_dim
 
-
     def __getitem__(self, index):
         # handle the image redundancy
-        img_id = index/self.im_div
+        img_id = int(index / self.im_div)
         image = torch.Tensor(self.images[img_id])
         caption = self.captions[index]
         vocab = self.vocab
@@ -210,14 +210,15 @@ class PrecompDataset(data.Dataset):
         text_features = torch.Tensor(text_features)
 
         # Convert caption (string) to word ids.
-        tokens = nltk.tokenize.word_tokenize(str(caption).lower().decode('utf-8'))
+        tokens = nltk.tokenize.word_tokenize(str(caption).lower())
+
         caption = []
         caption.append(vocab('<start>'))
         caption.extend([vocab(token) for token in tokens])
         caption.append(vocab('<end>'))
         target = torch.Tensor(caption)
 
-        ##### deal with caption model data
+        # Deal with caption model data
         # label = np.zeros(self.max_len)
         mask = np.zeros(self.max_len + 1)
         gts = np.zeros((self.max_len + 1))
@@ -275,7 +276,6 @@ def collate_fn(data):
         targets[i, :end] = cap[:end]
 
     text_features = torch.stack(text_features, 0)
-
 
     return images, targets, lengths, ids, caption_labels_, caption_masks_, text_features
 
