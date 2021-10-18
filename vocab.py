@@ -42,7 +42,6 @@ class Vocabulary(object):
         return len(self.word2idx)
 
 
-
 def from_flickr_json(path):
     dataset = json.load(open(path, 'r'))['images']
     captions = []
