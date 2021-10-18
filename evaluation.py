@@ -57,7 +57,7 @@ class LogCollector(object):
         """Concatenate the meters in one log line
         """
         s = ''
-        for i, (k, v) in enumerate(self.meters.iteritems()):
+        for i, (k, v) in enumerate(self.meters.items()):
             if i > 0:
                 s += '  '
             s += k + ' ' + str(v)
@@ -66,7 +66,7 @@ class LogCollector(object):
     def tb_log(self, tb_logger, prefix='', step=None):
         """Log using tensorboard
         """
-        for k, v in self.meters.iteritems():
+        for k, v in self.meters.items():
             tb_logger.log_value(prefix + k, v.val, step=step)
 
 
@@ -84,8 +84,9 @@ def encode_data(model, data_loader, log_step=10, logging=print):
     # numpy array to keep all the embeddings
     img_embs = None
     cap_embs = None
+    from tqdm import tqdm
     # image (Tensor), caption (Encoded by NLTK), caption length, image id, caption (Encoded and with padding up to max_len), caption mask (the same but mask), scene text (Encoded, 15 texts per image with emb len 300)
-    for i, (images, captions, lengths, ids, caption_labels, caption_masks, scene_text) in enumerate(data_loader):
+    for (images, captions, lengths, ids, caption_labels, caption_masks, scene_text) in tqdm(data_loader):
         # make sure val logger is used
         model.logger = val_logger
 
@@ -112,7 +113,7 @@ def evalrank(model_path, data_path=None, split='dev', fold5=False):
     used for evaluation.
     """
     # load model and options
-    checkpoint = torch.load(model_path)
+    checkpoint = torch.load(model_path, map_location="cpu")
     opt = checkpoint['opt']
     if data_path is not None:
         opt.data_path = data_path
@@ -194,7 +195,7 @@ def i2t(images, captions, npts=None, measure='cosine', return_ranks=False):
     Captions: (5N, K) matrix of captions
     """
     if npts is None:
-        npts = images.shape[0] / 5
+        npts = int(images.shape[0] / 5)
     index_list = []
 
     ranks = numpy.zeros(npts)
@@ -210,8 +211,8 @@ def i2t(images, captions, npts=None, measure='cosine', return_ranks=False):
             if index % bs == 0:
                 mx = min(images.shape[0], 5 * (index + bs))
                 im2 = images[5 * index:mx:5]
-                d2 = order_sim(torch.Tensor(im2).cuda(),
-                               torch.Tensor(captions).cuda())
+                d2 = order_sim(torch.Tensor(im2),#.cuda(),
+                               torch.Tensor(captions))#.cuda())
                 d2 = d2.cpu().numpy()
             d = d2[index % bs]
         else:
@@ -247,7 +248,7 @@ def t2i(images, captions, npts=None, measure='cosine', return_ranks=False):
     Captions: (5N, K) matrix of captions
     """
     if npts is None:
-        npts = images.shape[0] / 5
+        npts = int(images.shape[0] / 5)
     ims = numpy.array([images[i] for i in range(0, len(images), 5)])
 
     ranks = numpy.zeros(5 * npts)
@@ -263,8 +264,8 @@ def t2i(images, captions, npts=None, measure='cosine', return_ranks=False):
             if 5 * index % bs == 0:
                 mx = min(captions.shape[0], 5 * index + bs)
                 q2 = captions[5 * index:mx]
-                d2 = order_sim(torch.Tensor(ims).cuda(),
-                               torch.Tensor(q2).cuda())
+                d2 = order_sim(torch.Tensor(ims),#.cuda(),
+                               torch.Tensor(q2))#.cuda())
                 d2 = d2.cpu().numpy()
 
             d = d2[:, (5 * index) % bs:(5 * index) % bs + 5].T

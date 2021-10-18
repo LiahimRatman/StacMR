@@ -3,16 +3,24 @@ from vocab import Vocabulary
 import evaluation_models
 import evaluation
 
+
 # for flickr
-print('\nEvaluation on Flickr30K:')
-evaluation.evalrank("/SSD/VSRN_CTC/runs/full_model3_newfeats/model_best.pth.tar", data_path='/SSD/Datasets/Flickr30K/data/', split="test", fold5=False)
+def evaluate_models(model_path='runs/model_best.pth.tar', data_path='data_big/', split='dev', fold5=False):
+    evaluation.evalrank(model_path=model_path,
+                        data_path=data_path,
+                        split=split,
+                        fold5=fold5)
 
 
-# for TextCaps Validation set
-print('\nEvaluation on TextCaps Validation set:')
-evaluation.evalrank("/SSD/VSRN/runs/full_model3_newfeats/model_best.pth.tar", data_path='/SSD/Datasets/TextCaps/Flickr_Format/', split="dev", fold5=False)
+if __name__ == "__main__":
+    print('\nEvaluation on Flickr30K:')
+    evaluate_models(data_path='data_big/', split='dev')  # Для test нет данных
 
-# for NewSplit STACMR set
-print('\nEvaluation on STACMR:')
-evaluation.evalrank("/SSD/VSRN_CTC/runs/full_model3_newfeats/model_best.pth.tar", data_path='/SSD/Datasets/Coco-Text/ST_CMR_testdataset/New_Split/Flickr_Format/', split="dev", fold5=False)
-evaluation.evalrank("/SSD/VSRN_CTC/runs/full_model3_newfeats/model_best.pth.tar", data_path='/SSD/Datasets/Coco-Text/ST_CMR_testdataset/New_Split/Flickr_Format/', split="test", fold5=False)
+    # Все, что ниже не запускается из-за отсутствия данных
+
+    # print('\nEvaluation on TextCaps Validation set:')
+    # evaluate_models(data_path='data/', split='dev')
+    #
+    # print('\nEvaluation on STACMR:')
+    # evaluate_models(data_path='data/', split='dev')
+    # evaluate_models(data_path='data/', split='test')
