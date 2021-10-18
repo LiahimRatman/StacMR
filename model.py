@@ -5,7 +5,7 @@ import torchvision.models as models
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import torch.backends.cudnn as cudnn
-from torch.nn.utils.clip_grad import clip_grad_norm
+from torch.nn.utils.clip_grad import clip_grad_norm, clip_grad_norm_
 import numpy as np
 from collections import OrderedDict
 import torch.nn.functional as F
@@ -443,12 +443,12 @@ class VSRN(object):
             self.txt_enc.cuda()
             cudnn.benchmark = True
 
-        #####   captioning elements
+        #   captioning elements
 
         self.encoder = EncoderRNN(
             opt.dim_vid,
             opt.dim_hidden,
-            bidirectional=opt.bidirectional,
+            bidirectional=False,#opt.bidirectional,
             input_dropout_p=opt.input_dropout_p,
             rnn_cell=opt.rnn_type,
             rnn_dropout_p=opt.rnn_dropout_p)
@@ -493,9 +493,9 @@ class VSRN(object):
         # labels = Variable(labels, volatile=False)
         # masks = Variable(masks, volatile=False)
 
-        torch.cuda.synchronize()
-        labels = labels.cuda()
-        masks = masks.cuda()
+        # torch.cuda.synchronize()
+        labels = labels#.cuda()
+        masks = masks#.cuda()
 
         # if torch.cuda.is_available():
         #     labels.cuda()
@@ -551,7 +551,7 @@ class VSRN(object):
         """
         loss = self.criterion(img_emb, cap_emb)
         # self.logger.update('Le', loss.data[0], img_emb.size(0))
-        self.logger.update('Le_retrieval', loss.data[0], img_emb.size(0))
+        self.logger.update('Le_retrieval', loss.data, img_emb.size(0))
         return loss
 
     def train_emb(self, images, captions, lengths, ids, caption_labels, caption_masks, scene_text, *args):
@@ -566,20 +566,20 @@ class VSRN(object):
 
         # calculate captioning loss
         self.optimizer.zero_grad()
-
         caption_loss = self.calcualte_caption_loss(GCN_img_emd, caption_labels, caption_masks)
+        # caption_loss = self.calcualte_caption_loss(img_emb, caption_labels, caption_masks)
 
         # measure accuracy and record loss
         self.optimizer.zero_grad()
         retrieval_loss = self.forward_loss(img_emb, cap_emb)
 
         loss = 2.0 * retrieval_loss + caption_loss
-
-        self.logger.update('Le_caption', caption_loss.data[0], img_emb.size(0))
-        self.logger.update('Le', loss.data[0], img_emb.size(0))
+        print(f"Loss: {loss}, caption loss: {caption_loss}, retrieval loss: {retrieval_loss}")
+        self.logger.update('Le_caption', caption_loss.data, img_emb.size(0))
+        self.logger.update('Le', loss.data, img_emb.size(0))
 
         # compute gradient and do SGD step
         loss.backward()
         if self.grad_clip > 0:
-            clip_grad_norm(self.params, self.grad_clip)
+            clip_grad_norm_(self.params, self.grad_clip)
         self.optimizer.step()

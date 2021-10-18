@@ -7,6 +7,7 @@ from PIL import Image
 
 import numpy as np
 import json as jsonmod
+import codecs
 
 
 def get_paths(path, name='f30k', use_restval=False):
@@ -159,8 +160,10 @@ class PrecompDataset(data.Dataset):
         # Captions
         self.captions = []
         token_caption = []
-        with open(loc+'%s_caps.txt' % data_split, 'r') as f:
-            for line in f:
+        with codecs.open(loc+'%s_caps.txt' % data_split, 'r', 'utf_8_sig') as f:
+            # for line in f:
+            lines = f.readlines()
+            for line in lines:
                 self.captions.append(line.strip())
                 tokens = nltk.tokenize.word_tokenize(str(line.strip()).lower())
                 token_caption.append(tokens)
@@ -335,7 +338,8 @@ def get_transform(data_name, split_name, opt):
 
 
 def get_loaders(data_name, vocab, crop_size, batch_size, workers, opt):
-    dpath = os.path.join(opt.data_path, data_name)
+    # dpath = os.path.join(opt.data_path, data_name)
+    dpath = opt.data_path + '/' + data_name
     if opt.data_name.endswith('_precomp'):
         train_loader = get_precomp_loader(dpath, 'train', vocab, opt,
                                           batch_size, True, workers)
