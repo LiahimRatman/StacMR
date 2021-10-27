@@ -133,8 +133,8 @@ def main():
     opt.vocab_size = len(vocab)
 
     # Load data loaders
-    train_loader, val_loader = data.get_loaders(
-        opt.data_name, vocab, opt.crop_size, opt.batch_size, opt.workers, opt)
+    train_loader, val_loader = data.get_loaders(opt.data_path, opt.data_name, vocab, opt.crop_size, opt.batch_size,
+                                                opt.workers, opt.use_restval, opt.max_len, opt.text_number, opt.text_dim)
 
     # Construct the model
     model = VSRN(opt)

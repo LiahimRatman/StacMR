@@ -17,57 +17,58 @@ def get_paths(path, name='f30k', use_restval=False):
     The indices are extracted from the Karpathy et al. splits using this
     snippet:
 
-    >>> import json
-    >>> dataset=json.load(open('dataset_coco.json','r'))
-    >>> A=[]
-    >>> for i in range(len(D['images'])):
-    ...   if D['images'][i]['split'] == 'val':
-    ...     A+=D['images'][i]['sentids'][:5]
-    ...
+    # >>> import json
+    # >>> dataset=json.load(open('dataset_coco.json','r'))
+    # >>> A=[]
+    # >>> for i in range(len(D['images'])):
+    # ...   if D['images'][i]['split'] == 'val':
+    # ...     A+=D['images'][i]['sentids'][:5]
+    # ...
 
     :param name: Dataset names
     :param use_restval: If True, the the `restval` data is included in train.
     """
     roots = {}
     ids = {}
+    print(name)
     if 'coco' == name:
-        imgdir = os.path.join(path, 'images')
-        capdir = os.path.join(path, 'annotations')
+        imgdir = path + '/' + 'images'
+        capdir = path + '/' + 'annotations'
         roots['train'] = {
-            'img': os.path.join(imgdir, 'train2014'),
-            'cap': os.path.join(capdir, 'captions_train2014.json')
+            'img': imgdir + '/' + 'train2014',
+            'cap': capdir + '/' + 'captions_train2014.json'
         }
         roots['val'] = {
-            'img': os.path.join(imgdir, 'val2014'),
-            'cap': os.path.join(capdir, 'captions_val2014.json')
+            'img': imgdir + '/' + 'val2014',
+            'cap': capdir + '/' + 'captions_val2014.json'
         }
         roots['test'] = {
-            'img': os.path.join(imgdir, 'val2014'),
-            'cap': os.path.join(capdir, 'captions_val2014.json')
+            'img': imgdir + '/' + 'val2014',
+            'cap': capdir + '/' + 'captions_val2014.json'
         }
         roots['trainrestval'] = {
             'img': (roots['train']['img'], roots['val']['img']),
             'cap': (roots['train']['cap'], roots['val']['cap'])
         }
-        ids['train'] = np.load(os.path.join(capdir, 'coco_train_ids.npy'))
-        ids['val'] = np.load(os.path.join(capdir, 'coco_dev_ids.npy'))[:5000]
-        ids['test'] = np.load(os.path.join(capdir, 'coco_test_ids.npy'))
+        ids['train'] = np.load(capdir + '/' + 'coco_train_ids.npy')
+        ids['val'] = np.load(capdir + '/' + 'coco_dev_ids.npy')[:5000]
+        ids['test'] = np.load(capdir + '/' + 'coco_test_ids.npy')
         ids['trainrestval'] = (
             ids['train'],
-            np.load(os.path.join(capdir, 'coco_restval_ids.npy')))
+            np.load(capdir + '/' + 'coco_restval_ids.npy'))
         if use_restval:
             roots['train'] = roots['trainrestval']
             ids['train'] = ids['trainrestval']
     elif 'f8k' == name:
-        imgdir = os.path.join(path, 'images')
-        cap = os.path.join(path, 'dataset_flickr8k.json')
+        imgdir = path + '/' + 'images'
+        cap = path + '/' + 'dataset_flickr8k.json'
         roots['train'] = {'img': imgdir, 'cap': cap}
         roots['val'] = {'img': imgdir, 'cap': cap}
         roots['test'] = {'img': imgdir, 'cap': cap}
         ids = {'train': None, 'val': None, 'test': None}
     elif 'f30k' == name:
-        imgdir = os.path.join(path, 'images')
-        cap = os.path.join(path, 'dataset_flickr30k.json')
+        imgdir = path + '/' + 'images'
+        cap = path + '/' + 'dataset_flickr30k.json'
         roots['train'] = {'img': imgdir, 'cap': cap}
         roots['val'] = {'img': imgdir, 'cap': cap}
         roots['test'] = {'img': imgdir, 'cap': cap}
@@ -89,7 +90,6 @@ class CocoDataset(data.Dataset):
         """
         self.root = root
         # when using `restval`, two json files are needed
-
 
     def __getitem__(self, index):
         """This function returns a tuple that is further passed to collate_fn
@@ -135,12 +135,13 @@ class FlickrDataset(data.Dataset):
 
         # Convert caption (string) to word ids.
         tokens = nltk.tokenize.word_tokenize(
-            str(caption).lower().decode('utf-8'))
+            str(caption).lower())#.decode('utf-8'))
         caption = []
         caption.append(vocab('<start>'))
         caption.extend([vocab(token) for token in tokens])
         caption.append(vocab('<end>'))
         target = torch.Tensor(caption)
+
         return image, target, index, img_id
 
     def __len__(self):
@@ -153,7 +154,7 @@ class PrecompDataset(data.Dataset):
     Possible options: f8k, f30k, coco, 10crop
     """
 
-    def __init__(self, data_path, data_split, vocab, opt):
+    def __init__(self, data_path, data_split, vocab, max_len, text_number, text_dim):
         self.vocab = vocab
         loc = data_path + '/'
 
@@ -192,14 +193,14 @@ class PrecompDataset(data.Dataset):
             # # FOR CTC FULL VAL -> 5683 * 5 = 28415
             # self.length = 28415
 
-        self.max_len = opt.max_len
+        self.max_len = max_len
 
         # Load Scene Text Features
         self.text_features = np.load(loc + '%s_ocr_feats.npy' % data_split)
         # Number of scene text instances
-        self.text_number = opt.text_number
+        self.text_number = text_number
         # Scene text insembedding dim
-        self.text_dim = opt.text_dim
+        self.text_dim = text_dim
 
     def __getitem__(self, index):
         # handle the image redundancy
@@ -304,10 +305,10 @@ def get_loader_single(data_name, split, root, json, vocab, transform,
     return data_loader
 
 
-def get_precomp_loader(data_path, data_split, vocab, opt, batch_size=100,
+def get_precomp_loader(data_path, data_split, vocab, max_len, text_number, text_dim, batch_size=100,
                        shuffle=True, num_workers=2):
     """Returns torch.utils.data.DataLoader for custom coco dataset."""
-    dset = PrecompDataset(data_path, data_split, vocab, opt)
+    dset = PrecompDataset(data_path, data_split, vocab, max_len, text_number, text_dim)
 
     # print(dset.max_len)
     # opt.max_len = dset.max_len + 1
@@ -320,12 +321,12 @@ def get_precomp_loader(data_path, data_split, vocab, opt, batch_size=100,
     return data_loader
 
 
-def get_transform(data_name, split_name, opt):
+def get_transform(data_name, split_name, crop_size):
     normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                       std=[0.229, 0.224, 0.225])
     t_list = []
     if split_name == 'train':
-        t_list = [transforms.RandomResizedCrop(opt.crop_size),
+        t_list = [transforms.RandomResizedCrop(crop_size),
                   transforms.RandomHorizontalFlip()]
     elif split_name == 'val':
         t_list = [transforms.Resize(256), transforms.CenterCrop(224)]
@@ -337,20 +338,23 @@ def get_transform(data_name, split_name, opt):
     return transform
 
 
-def get_loaders(data_name, vocab, crop_size, batch_size, workers, opt):
+def get_loaders(data_path, data_name, vocab, crop_size, batch_size, workers, use_restval, max_len, text_number, text_dim):
     # dpath = os.path.join(opt.data_path, data_name)
-    dpath = opt.data_path + '/' + data_name
-    if opt.data_name.endswith('_precomp'):
-        train_loader = get_precomp_loader(dpath, 'train', vocab, opt,
+    dpath = data_path + '/' + data_name
+    print(dpath)
+    if data_name.endswith('_precomp'):
+        train_loader = get_precomp_loader(dpath, 'train', vocab, max_len, text_number, text_dim,
                                           batch_size, True, workers)
-        val_loader = get_precomp_loader(dpath, 'dev', vocab, opt,
+        val_loader = get_precomp_loader(dpath, 'dev', vocab, max_len, text_number, text_dim,
                                         batch_size, False, workers)
     else:
         # Build Dataset Loader
-        roots, ids = get_paths(dpath, data_name, opt.use_restval)
-
-        transform = get_transform(data_name, 'train', opt)
-        train_loader = get_loader_single(opt.data_name, 'train',
+        roots, ids = get_paths(dpath, data_name, use_restval)
+        print(roots)
+        print(ids)
+        transform = get_transform(data_name, 'train', crop_size)
+        print(transform)
+        train_loader = get_loader_single(data_name, 'train',
                                          roots['train']['img'],
                                          roots['train']['cap'],
                                          vocab, transform, ids=ids['train'],
@@ -358,8 +362,8 @@ def get_loaders(data_name, vocab, crop_size, batch_size, workers, opt):
                                          num_workers=workers,
                                          collate_fn=collate_fn)
 
-        transform = get_transform(data_name, 'val', opt)
-        val_loader = get_loader_single(opt.data_name, 'val',
+        transform = get_transform(data_name, 'val', crop_size)
+        val_loader = get_loader_single(data_name, 'val',
                                        roots['val']['img'],
                                        roots['val']['cap'],
                                        vocab, transform, ids=ids['val'],
@@ -370,18 +374,18 @@ def get_loaders(data_name, vocab, crop_size, batch_size, workers, opt):
     return train_loader, val_loader
 
 
-def get_test_loader(split_name, data_name, vocab, crop_size, batch_size,
-                    workers, opt):
-    dpath = os.path.join(opt.data_path, data_name)
-    if opt.data_name.endswith('_precomp'):
-        test_loader = get_precomp_loader(dpath, split_name, vocab, opt,
+def get_test_loader(split_name, data_path, data_name, vocab, crop_size, use_restval, batch_size,
+                    workers, max_len, text_number, text_dim):
+    dpath = os.path.join(data_path, data_name)
+    if data_name.endswith('_precomp'):
+        test_loader = get_precomp_loader(dpath, split_name, vocab, max_len, text_number, text_dim,
                                          batch_size, False, workers)
     else:
         # Build Dataset Loader
-        roots, ids = get_paths(dpath, data_name, opt.use_restval)
+        roots, ids = get_paths(dpath, data_name, use_restval)
 
-        transform = get_transform(data_name, split_name, opt)
-        test_loader = get_loader_single(opt.data_name, split_name,
+        transform = get_transform(data_name, split_name, crop_size)
+        test_loader = get_loader_single(data_name, split_name,
                                         roots[split_name]['img'],
                                         roots[split_name]['cap'],
                                         vocab, transform, ids=ids[split_name],

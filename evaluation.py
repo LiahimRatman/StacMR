@@ -115,6 +115,7 @@ def evalrank(model_path, data_path=None, split='dev', fold5=False):
     # load model and options
     checkpoint = torch.load(model_path, map_location="cpu")
     opt = checkpoint['opt']
+    print(opt)
     if data_path is not None:
         opt.data_path = data_path
 
@@ -131,8 +132,8 @@ def evalrank(model_path, data_path=None, split='dev', fold5=False):
     model.load_state_dict(checkpoint['model'])
 
     print('Loading dataset')
-    data_loader = get_test_loader(split, opt.data_name, vocab, opt.crop_size,
-                                  opt.batch_size, opt.workers, opt)
+    data_loader = get_test_loader(split, opt.data_path, opt.data_name, vocab, opt.crop_size, opt.use_restval,
+                                  opt.batch_size, opt.workers, opt.max_len, opt.text_number, opt.text_dim)
 
     print('Computing results...')
     img_embs, cap_embs = encode_data(model, data_loader)
@@ -314,8 +315,8 @@ def extract_feats(model_path, data_path=None, split='dev', fold5=False):
     model.load_state_dict(checkpoint['model'])
 
     print('Loading dataset')
-    data_loader = get_test_loader(split, opt.data_name, vocab, opt.crop_size,
-                                  opt.batch_size, opt.workers, opt)
+    data_loader = get_test_loader(split, opt.data_path, opt.data_name, vocab, opt.crop_size, opt.use_restval,
+                                  opt.batch_size, opt.workers, opt.max_len, opt.text_number, opt.text_dim)
 
     print('Computing results...')
     img_embs, cap_embs = encode_data(model, data_loader)

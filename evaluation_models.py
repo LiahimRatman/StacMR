@@ -140,8 +140,8 @@ def evalrank(model_path, model_path2, data_path=None, split='dev', fold5=False):
     model2.load_state_dict(checkpoint2['model'])
 
     print('Loading dataset')
-    data_loader = get_test_loader(split, opt.data_name, vocab, opt.crop_size,
-                                  opt.batch_size, opt.workers, opt)
+    data_loader = get_test_loader(split, opt.data_path, opt.data_name, vocab, opt.crop_size, opt.use_restval,
+                                  opt.batch_size, opt.workers, opt.max_len, opt.text_number, opt.text_dim)
 
     print('Computing results...')
     img_embs, cap_embs = encode_data(model, data_loader)
