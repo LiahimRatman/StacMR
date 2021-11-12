@@ -261,9 +261,9 @@ class EncoderImagePrecompAttn(nn.Module):
         # -> B,N,D
         GCN_img_emd = GCN_img_emd.permute(0, 2, 1)
         GCN_img_emd = l2norm(GCN_img_emd)
-
-        rnn_img, hidden_state = self.img_rnn(GCN_img_emd)
-        visual_features = hidden_state[0]
+        visual_features = torch.mean(GCN_img_emd, dim=1)
+        # rnn_img, hidden_state = self.img_rnn(GCN_img_emd)
+        # visual_features = hidden_state[0]
 
         # SCENE TEXT FEATURES --- AM --------
         fc_scene_text = self.bn_scene_text(scene_text)
